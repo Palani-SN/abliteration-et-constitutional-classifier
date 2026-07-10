@@ -423,7 +423,7 @@ The same divergence collapsed to one number per layer (`‖raw_diff‖`) makes t
 
 This is exactly why `mult_factor = 0.6` (→ layer 10) lands in the middle of the rising part of this curve rather than at the (structurally different) final layer. Explore both figures — including a per-layer dimension dropdown — in the live report:
 
-**→ [`activations/activation_analysis.html`](activations/activation_analysis.html)**
+**→ [`activations/activation_analysis.html`](https://palani-sn.github.io/LLM2/activations/activation_analysis.html)**
 
 ### 9.2 · Signature Validation
 
@@ -441,7 +441,7 @@ The critical check is whether this 6-dimension, 6-layer signature is actually do
 
 Full per-layer statistics, the score-averaging vs. best-single-layer comparison, and both classification panels (train and OOD) are interactive in the live report:
 
-**→ [`activations/signature_report.html`](activations/signature_report.html)** · full numeric backing in [`activations/signature_stats.json`](activations/signature_stats.json)
+**→ [`activations/signature_report.html`](https://palani-sn.github.io/LLM2/activations/signature_report.html)** · full numeric backing in [`activations/signature_stats.json`](activations/signature_stats.json)
 
 ### 9.3 · Verification & Comparison Report
 
@@ -459,7 +459,7 @@ On harmless prompts: the abliterated model remains just as usable (99/100 still 
 
 Every prompt and every model/classifier response in both tables is click-to-expand in the live, filterable report:
 
-**→ [`results/20260707_180328/comparison_report.html`](results/20260707_180328/comparison_report.html)** *(the report for the run described throughout this README; re-running Stage 6/7 produces a new `results/<timestamp>/` directory — [`comparison_report.py`](comparison_report.py) always renders whichever is newest)*
+**→ [`results/20260707_180328/comparison_report.html`](https://palani-sn.github.io/LLM2/results/20260707_180328/comparison_report.html)** *(the report for the run described throughout this README; re-running Stage 6/7 produces a new `results/<timestamp>/` directory — [`comparison_report.py`](comparison_report.py) always renders whichever is newest)*
 
 ## Dataset
 
