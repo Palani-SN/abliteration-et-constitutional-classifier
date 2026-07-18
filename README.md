@@ -44,7 +44,7 @@ At a glance, the last full run found:
 
 - The **abliterated model** complied with **94/100** harmful prompts it would otherwise have refused (ablation works), while still complying with **99/100** harmless prompts.
 - The **Constitutional Classifier++** layered back on top restored safety to **99/100** harmful prompts blocked, at a fraction of the latency of a full generation (FastGate clears ~90% of harmless traffic without generating anything).
-- A **6-layer × 6-dimension** activation "signature," selected purely by Cohen's d, classifies harmful vs. harmless OOD prompts at **99.5% accuracy** — nearly matching an all-19-layer/all-2048-dimension baseline (also 99.5%) while using **0.08%** of the information.
+- A **6-layer × 6-dimension** activation "signature," selected purely by Cohen's d, classifies harmful vs. harmless OOD prompts at **99.5% accuracy** — nearly matching an all-19-layer/all-2048-dimension baseline (also 99.5%) while using **0.09%** of the information.
 
 ## Background & Motivation
 
@@ -435,7 +435,7 @@ Scoring every training prompt by its average cosine similarity to the mean refus
 
 <p align="center"><img src="images/Train-Classification-Avg-Score-Layers-12-17.png" alt="Train classification score distribution, layers 12-17" width="850"></p>
 
-The critical check is whether this 6-dimension, 6-layer signature is actually doing meaningful dimensionality reduction, or just capturing what *any* set of dimensions would capture. Scored on the **held-out OOD test set**, the 36-coordinate signature (Cohen's d = 4.44, 99.5% accuracy) tracks the all-19-layer/all-2048-dimension baseline (Cohen's d = 5.46, also 99.5% accuracy) almost exactly, while using **0.08%** as many coordinates:
+The critical check is whether this 6-dimension, 6-layer signature is actually doing meaningful dimensionality reduction, or just capturing what *any* set of dimensions would capture. Scored on the **held-out OOD test set**, the 36-coordinate signature (Cohen's d = 4.44, 99.5% accuracy) tracks the all-19-layer/all-2048-dimension baseline (Cohen's d = 5.46, also 99.5% accuracy) almost exactly, while using **0.09%** as many coordinates:
 
 <p align="center"><img src="images/selected-6-vs-all-dims.png" alt="Signature (6 layers x 6 dims) vs all-dims/all-layers baseline, OOD split" width="850"></p>
 
