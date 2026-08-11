@@ -1,10 +1,16 @@
+import argparse
 import hashlib
 import os
 import sys
 from itertools import product
 from pathlib import Path
 
-os.environ.setdefault("HF_HUB_OFFLINE", "1")
+from models import cli_model_arg, configure_hf_offline_mode, resolve_model
+
+# Resolved here, before transformers/huggingface_hub is imported, since
+# HF_HUB_OFFLINE is read once at that import — see models.py.
+_early_model_id = resolve_model(cli_model_arg())[1]
+configure_hf_offline_mode(_early_model_id)
 
 import torch
 from transformers import AutoTokenizer, AutoModelForCausalLM
@@ -14,8 +20,9 @@ from load_datasets import PromptSets
 sys.stdout.reconfigure(encoding="utf-8")
 
 # =============================================================================
-# FALCON3-1B-INSTRUCT — REFUSAL DIRECTION ACTIVATION COLLECTION
+# REFUSAL DIRECTION ACTIVATION COLLECTION
 # bfloat16, full precision | last prompt-token residual stream, all layers
+# Model is selected dynamically via --model <key> from models.yml.
 # =============================================================================
 
 
@@ -25,8 +32,11 @@ class ActivationCollector:
     PROMPT_COLUMN = "text"
     SPLITS = ("train", "test")
 
-    def __init__(self, model_id="tiiuae/Falcon3-1B-Instruct", dataset_path="dataset/",
+    def __init__(self, model_id=None, dataset_path="dataset/",
                  save_dir="activations", top_n=None):
+
+        if model_id is None:
+            _, model_id = resolve_model()
 
         self.top_n = top_n
         self.save_dir = Path(save_dir)
@@ -71,8 +81,11 @@ class ActivationCollector:
         # starts — this is the position where the model "decides" to refuse or
         # comply, before any response tokens exist.
         messages = [{"role": "user", "content": prompt}]
+        # enable_thinking=False so the prompt-side template stays consistent
+        # with abliterate.py/classify.py's generation calls (harmless no-op
+        # for models without a "thinking mode" template).
         text = self.tokenizer.apply_chat_template(
-            messages, tokenize=False, add_generation_prompt=True,
+            messages, tokenize=False, add_generation_prompt=True, enable_thinking=False,
         )
         inputs = self.tokenizer(text, return_tensors="pt").to(self.DEVICE)
         with torch.no_grad():
@@ -114,10 +127,17 @@ class ActivationCollector:
 
 
 if __name__ == "__main__":
+    parser = argparse.ArgumentParser()
+    parser.add_argument("--model", default=None, help="Model key from models.yml (default: first entry)")
+    args = parser.parse_args()
+
+    model_key, model_id = resolve_model(args.model)
+    print(f"Using model '{model_key}' -> {model_id}")
+
     collector = ActivationCollector(
-        model_id="tiiuae/Falcon3-1B-Instruct",
+        model_id=model_id,
         dataset_path="dataset/",
-        save_dir="activations",
+        save_dir=f"activations/{model_key}",
         top_n=None,
     )
     collector.run()

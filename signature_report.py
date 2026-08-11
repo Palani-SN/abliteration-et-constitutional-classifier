@@ -1,3 +1,4 @@
+import argparse
 import json
 import os
 from pathlib import Path
@@ -8,12 +9,15 @@ from scipy import stats
 import plotly.graph_objects as go
 import plotly.io as pio
 
+from models import resolve_model
+
 # =============================================================================
 # SIGNATURE DIMENSION ANALYSIS (adapted from analyze_signature.py's reference
-# methodology for THIS project's data: Falcon3-1B-Instruct, 2048-dim, layers/
-# dims read from activations/signature.pt instead of hardcoded, and prompt
-# activations globbed directly from activations/<category>_<split>/ instead of
-# a prompts/*.json manifest.)
+# methodology for THIS project's data: 2048-dim, layers/dims read from
+# activations/<model_key>/signature.pt instead of hardcoded, and prompt
+# activations globbed directly from activations/<model_key>/<category>_<split>/
+# instead of a prompts/*.json manifest. Model selected dynamically via
+# --model <key> from models.yml.)
 #
 # Checks whether the Cohen's-d-selected {layers} x {dims} from
 # compute_direction.py forms a statistically reliable fingerprint for refusal —
@@ -36,10 +40,7 @@ import plotly.io as pio
 #   activations/signature_report.html   five-panel interactive report
 # =============================================================================
 
-ACTIVATIONS_DIR = "activations"
-SIGNATURE_PATH  = os.path.join(ACTIVATIONS_DIR, "signature.pt")
-STATS_OUT       = os.path.join(ACTIVATIONS_DIR, "signature_stats.json")
-HTML_OUT        = os.path.join(ACTIVATIONS_DIR, "signature_report.html")
+ACTIVATIONS_DIR = "activations"  # rebound in __main__ to activations/<model_key>
 
 
 # ── Helpers ───────────────────────────────────────────────────────────────────
@@ -510,6 +511,18 @@ def build_html(results, combined, ood, sig_dims, sig_layers, baseline_combined=N
 # ── Main ──────────────────────────────────────────────────────────────────────
 
 if __name__ == "__main__":
+    parser = argparse.ArgumentParser()
+    parser.add_argument("--model", default=None, help="Model key from models.yml (default: first entry)")
+    args = parser.parse_args()
+
+    model_key, model_id = resolve_model(args.model)
+    print(f"Using model '{model_key}' -> {model_id}")
+
+    ACTIVATIONS_DIR = os.path.join("activations", model_key)
+    SIGNATURE_PATH  = os.path.join(ACTIVATIONS_DIR, "signature.pt")
+    STATS_OUT       = os.path.join(ACTIVATIONS_DIR, "signature_stats.json")
+    HTML_OUT        = os.path.join(ACTIVATIONS_DIR, "signature_report.html")
+
     signature = torch.load(SIGNATURE_PATH)
     sig_layers = signature["layers"]
     sig_dims   = signature["dims"]

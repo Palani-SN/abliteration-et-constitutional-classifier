@@ -1,0 +1,7 @@
+falcon_3_1b: "tiiuae/Falcon3-1B-Instruct"
+qwen_3_1p7b: "Qwen/Qwen3-1.7B"
+stablelm_2_1p6b: "stabilityai/stablelm-2-zephyr-1_6b"
+qwen_1p5_1p8b: "Qwen/Qwen1.5-1.8B-Chat"
+gemma_1p1_2b: "google/gemma-1.1-2b-it"
+gemma_1p1_7b: "google/gemma-1.1-7b-it"
+llama_3_8b: "meta-llama/Meta-Llama-3-8B-Instruct"

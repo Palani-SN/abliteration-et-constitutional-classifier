@@ -11,33 +11,49 @@ REM                                which dataset/store_datasets.py must have alr
 REM                                curated)
 REM   2. compute_direction.py   - compute per-layer mean-difference directions and
 REM                                save the single selected layer's direction to
-REM                                activations/direction.pt, plus the Cohen's-d
-REM                                selected {layers}x{dims} signature (+ empirically
-REM                                fit gate_threshold) to activations/signature.pt
+REM                                activations/<model_key>/direction.pt, plus the
+REM                                Cohen's-d selected {layers}x{dims} signature
+REM                                (+ empirically fit gate_threshold) to
+REM                                activations/<model_key>/signature.pt
 REM   3. signature_report.py    - validate the signature (per-layer Cohen's d sweep,
 REM                                train-vs-OOD classification coherence, and an
 REM                                all-dims/all-layers baseline comparison), writing
-REM                                activations/signature_report.html + signature_stats.json
+REM                                activations/<model_key>/signature_report.html +
+REM                                signature_stats.json
 REM   4. abliterate.py          - apply the direction as a runtime ablation hook (no
 REM                                model is saved to disk) and print a quick
 REM                                LLM-as-judge sanity check on a few OOD prompts
 REM   5. classify.py            - two-stage Constitutional-Classifiers++ sanity check
-REM                                (FastGate activation probe + Falcon3 ExchangeClassifier)
+REM                                (FastGate activation probe + ExchangeClassifier,
+REM                                reusing the same loaded model)
 REM                                over top_n harmful/harmless OOD test prompts
 REM   6. verify.py              - batch-compare original vs ablated responses AND run
 REM                                the Stage 1/2 classifier on the same held-out OOD
 REM                                test prompts, writing
-REM                                results/<timestamp>/{harmless,harmfull}.xlsx
-REM   7. comparison_report.py   - reads the latest results/<timestamp>/*.xlsx and
-REM                                writes a consolidated HTML comparing judgement and
+REM                                results/<model_key>/<timestamp>/{harmless,harmfull}.xlsx
+REM   7. comparison_report.py   - reads the latest results/<model_key>/<timestamp>/*.xlsx
+REM                                and writes a consolidated HTML comparing judgement and
 REM                                latency (*_ts) across Original / Abliterated /
 REM                                Constitutional Classifier++ to
-REM                                results/<timestamp>/comparison_report.html
+REM                                results/<model_key>/<timestamp>/comparison_report.html
 REM Run setup_env.bat once before this script if the "eip" conda
 REM environment has not been created yet.
+REM
+REM Usage: workflow.bat [model_key] [top_n]
+REM   model_key - a key from models.yml (e.g. qwen_3_1p7b). Defaults to the
+REM               first entry in models.yml when omitted. Every stage writes
+REM               under activations\<model_key>\ and results\<model_key>\, so
+REM               different models never share cached activations or results.
+REM   top_n     - caps verify.py (Stage 6) to top_n harmful + top_n harmless
+REM               OOD prompts, for a quick end-to-end smoke test. Defaults to
+REM               the full 100+100 held-out set when omitted.
 REM =============================================================================
 
 set ENV_NAME=eip
+set MODEL_ARG=
+if not "%~1"=="" set MODEL_ARG=--model %~1
+set TOPN_ARG=
+if not "%~2"=="" set TOPN_ARG=--top_n %~2
 
 where conda >nul 2>nul
 if errorlevel 1 (
@@ -57,60 +73,60 @@ for /f %%t in ('powershell -NoProfile -Command "[long](Get-Date).Ticks"') do set
 echo ============================================================
 echo STAGE 1/7: Collecting activations
 echo ============================================================
-python collect_activations.py
+python collect_activations.py %MODEL_ARG%
 if errorlevel 1 goto :fail
 
 echo.
 echo ============================================================
 echo STAGE 2/7: Computing the refusal direction and signature
 echo ============================================================
-python compute_direction.py
+python compute_direction.py %MODEL_ARG%
 if errorlevel 1 goto :fail
 
 echo.
 echo ============================================================
 echo STAGE 3/7: Validating the signature (report + baseline comparison)
 echo ============================================================
-python signature_report.py
+python signature_report.py %MODEL_ARG%
 if errorlevel 1 goto :fail
 
 echo.
 echo ============================================================
 echo STAGE 4/7: Abliterating the model (runtime ablation + quick judge check)
 echo ============================================================
-python abliterate.py
+python abliterate.py %MODEL_ARG%
 if errorlevel 1 goto :fail
 
 echo.
 echo ============================================================
 echo STAGE 5/7: Two-stage classifier sanity check (FastGate + ExchangeClassifier)
 echo ============================================================
-python classify.py
+python classify.py %MODEL_ARG%
 if errorlevel 1 goto :fail
 
 echo.
 echo ============================================================
 echo STAGE 6/7: Verifying generalization on held-out OOD prompts
 echo ============================================================
-python verify.py
+python verify.py %MODEL_ARG% %TOPN_ARG%
 if errorlevel 1 goto :fail
 
 echo.
 echo ============================================================
 echo STAGE 7/7: Building the comparison report (latest results/ run)
 echo ============================================================
-python comparison_report.py
+python comparison_report.py %MODEL_ARG%
 if errorlevel 1 goto :fail
 
 call :elapsed
 echo.
 echo ============================================================
 echo PIPELINE COMPLETE
-echo   - refusal direction:    activations\direction.pt
-echo   - signature + gate:     activations\signature.pt
-echo   - signature report:     activations\signature_report.html
-echo   - verification reports: results\^<timestamp^>\{harmless,harmfull}.xlsx
-echo   - comparison report:    results\^<timestamp^>\comparison_report.html
+echo   - refusal direction:    activations\^<model_key^>\direction.pt
+echo   - signature + gate:     activations\^<model_key^>\signature.pt
+echo   - signature report:     activations\^<model_key^>\signature_report.html
+echo   - verification reports: results\^<model_key^>\^<timestamp^>\{harmless,harmfull}.xlsx
+echo   - comparison report:    results\^<model_key^>\^<timestamp^>\comparison_report.html
 echo   - total time taken:     %ELAPSED%
 echo ============================================================
 endlocal

@@ -1,3 +1,4 @@
+import argparse
 import os
 import sys
 from pathlib import Path
@@ -6,7 +7,12 @@ from pathlib import Path
 # first causes a deterministic access-violation crash inside pyarrow on Windows.
 from load_datasets import PromptSets
 
-os.environ.setdefault("HF_HUB_OFFLINE", "1")
+from models import cli_model_arg, configure_hf_offline_mode, resolve_model
+
+# Resolved here, before transformers/huggingface_hub is imported, since
+# HF_HUB_OFFLINE is read once at that import — see models.py.
+_early_model_id = resolve_model(cli_model_arg())[1]
+configure_hf_offline_mode(_early_model_id)
 
 import torch
 from transformers import AutoTokenizer, AutoModelForCausalLM
@@ -37,9 +43,12 @@ class Abliterator:
     DEVICE = "cuda"
     PROMPT_COLUMN = "text"
 
-    def __init__(self, model_id="tiiuae/Falcon3-1B-Instruct", dataset_path="dataset/",
+    def __init__(self, model_id=None, dataset_path="dataset/",
                  activations_dir="activations", direction_path=None, top_n=3,
                  judge_model="gemma4:e4b", max_new_tokens=128):
+
+        if model_id is None:
+            _, model_id = resolve_model()
 
         self.model_id = model_id
         self.activations_dir = Path(activations_dir)
@@ -114,7 +123,14 @@ class Abliterator:
 
     def generate(self, prompt):
         messages = [{"role": "user", "content": prompt}]
-        text = self.tokenizer.apply_chat_template(messages, tokenize=False, add_generation_prompt=True)
+        # enable_thinking=False: Qwen3's chat template supports a "thinking mode"
+        # that wraps generation in a <think>...</think> block before the answer;
+        # ignored (harmless) by every other model's template. Disabled so every
+        # model's output is plain text — required for the judge/classifier's
+        # verdict parsing to work uniformly across models.yml.
+        text = self.tokenizer.apply_chat_template(
+            messages, tokenize=False, add_generation_prompt=True, enable_thinking=False,
+        )
         inputs = self.tokenizer(text, return_tensors="pt").to(self.DEVICE)
         with torch.no_grad():
             out = self.model.generate(
@@ -152,10 +168,17 @@ class Abliterator:
 
 
 if __name__ == "__main__":
+    parser = argparse.ArgumentParser()
+    parser.add_argument("--model", default=None, help="Model key from models.yml (default: first entry)")
+    args = parser.parse_args()
+
+    model_key, model_id = resolve_model(args.model)
+    print(f"Using model '{model_key}' -> {model_id}")
+
     abliterator = Abliterator(
-        model_id="tiiuae/Falcon3-1B-Instruct",
+        model_id=model_id,
         dataset_path="dataset/",
-        activations_dir="activations",
+        activations_dir=f"activations/{model_key}",
         top_n=3,
         judge_model="gemma4:e4b",
     )

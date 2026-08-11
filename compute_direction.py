@@ -1,3 +1,4 @@
+import argparse
 import hashlib
 from pathlib import Path
 
@@ -7,6 +8,7 @@ from load_datasets import PromptSets
 
 import torch
 
+from models import resolve_model
 from utils.visualize import plot_activation_analysis
 
 # =============================================================================
@@ -224,9 +226,16 @@ class DirectionComputer:
 
 
 if __name__ == "__main__":
+    parser = argparse.ArgumentParser()
+    parser.add_argument("--model", default=None, help="Model key from models.yml (default: first entry)")
+    args = parser.parse_args()
+
+    model_key, model_id = resolve_model(args.model)
+    print(f"Using model '{model_key}' -> {model_id}")
+
     computer = DirectionComputer(
         dataset_path="dataset/",
-        activations_dir="activations",
+        activations_dir=f"activations/{model_key}",
         mult_factor=0.6,
         top_n=None,
     )

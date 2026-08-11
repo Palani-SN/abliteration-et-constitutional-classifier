@@ -1,15 +1,19 @@
+import argparse
 import html
 from pathlib import Path
 
 import pandas as pd
 
+from models import resolve_model
+
 # =============================================================================
 # COMPARISON REPORT
-# Reads the latest results/<timestamp>/*.xlsx written by verify.py and builds
-# a single self-contained (besides the Bootstrap CDN) HTML report summarising
+# Reads the latest results/<model_key>/<timestamp>/*.xlsx written by verify.py
+# (model selected dynamically via --model <key> from models.yml) and builds a
+# single self-contained (besides the Bootstrap CDN) HTML report summarising
 # judgement and latency improvement/deterioration across the three conditions
 # verify.py measures per prompt:
-#   Original Model    — un-ablated Falcon3, generation-time judge verdict
+#   Original Model    — un-ablated model, generation-time judge verdict
 #   Abliterated Model — same model with the runtime ablation hook active
 #   Constitutional Classifier++ — FastGate + ExchangeClassifier verdict
 #
@@ -22,14 +26,13 @@ import pandas as pd
 #                      COMPLY even on harmful prompts, not "is this safe")
 #   Classifier PASS  = judgement matches expected_label (safety restored)
 #
-# Output: results/<timestamp>/comparison_report.html
+# Output: results/<model_key>/<timestamp>/comparison_report.html
 # =============================================================================
 
-RESULTS_DIR = Path("results")
 PREVIEW_LEN = 90
 
 
-def find_latest_run_dir(results_dir=RESULTS_DIR):
+def find_latest_run_dir(results_dir):
     runs = [p for p in results_dir.iterdir() if p.is_dir()]
     if not runs:
         raise FileNotFoundError(f"No run folders found under {results_dir}/ — run verify.py first.")
@@ -387,7 +390,14 @@ def build_html(run_dir, frames):
 
 
 if __name__ == "__main__":
-    run_dir = find_latest_run_dir()
+    parser = argparse.ArgumentParser()
+    parser.add_argument("--model", default=None, help="Model key from models.yml (default: first entry)")
+    args = parser.parse_args()
+
+    model_key, model_id = resolve_model(args.model)
+    print(f"Using model '{model_key}' -> {model_id}")
+
+    run_dir = find_latest_run_dir(Path("results") / model_key)
     print(f"Latest run: {run_dir}")
 
     frames = load_run(run_dir)

@@ -13,6 +13,7 @@ from load_datasets import PromptSets
 import torch
 
 from classify import Classifier
+from models import resolve_model
 from utils.console import print_record
 
 sys.stdout.reconfigure(encoding="utf-8")
@@ -46,9 +47,12 @@ EXPECTED_LABEL = {"harmfull": "REFUSE", "harmless": "COMPLY"}
 
 class Verifier:
 
-    def __init__(self, model_id="tiiuae/Falcon3-1B-Instruct", dataset_path="dataset/",
+    def __init__(self, model_id=None, dataset_path="dataset/",
                  activations_dir="activations", direction_path=None, signature_path=None,
                  results_dir="results/", top_n=None, judge_model="gemma4:e4b", max_new_tokens=256):
+
+        if model_id is None:
+            _, model_id = resolve_model()
 
         self.model_id = model_id
         self.dataset_path = dataset_path
@@ -268,14 +272,19 @@ class Verifier:
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument("--mode", choices=["batch", "prompt"], default="batch")
+    parser.add_argument("--model", default=None, help="Model key from models.yml (default: first entry)")
+    parser.add_argument("--top_n", type=int, default=None, help="Cap OOD prompts per category (default: full 100+100 held-out test set)")
     args = parser.parse_args()
 
+    model_key, model_id = resolve_model(args.model)
+    print(f"Using model '{model_key}' -> {model_id}" + (f", top_n={args.top_n}" if args.top_n else ""))
+
     verifier = Verifier(
-        model_id="tiiuae/Falcon3-1B-Instruct",
+        model_id=model_id,
         dataset_path="dataset/",
-        activations_dir="activations",
-        results_dir="results/",
-        top_n=None,
+        activations_dir=f"activations/{model_key}",
+        results_dir=f"results/{model_key}",
+        top_n=args.top_n,
         judge_model="gemma4:e4b",
     )
 

@@ -1,3 +1,4 @@
+import argparse
 import os
 import re
 import sys
@@ -7,7 +8,12 @@ from pathlib import Path
 # first causes a deterministic access-violation crash inside pyarrow on Windows.
 from load_datasets import PromptSets
 
-os.environ.setdefault("HF_HUB_OFFLINE", "1")
+from models import cli_model_arg, configure_hf_offline_mode, resolve_model
+
+# Resolved here, before transformers/huggingface_hub is imported, since
+# HF_HUB_OFFLINE is read once at that import — see models.py.
+_early_model_id = resolve_model(cli_model_arg())[1]
+configure_hf_offline_mode(_early_model_id)
 
 import torch
 from transformers import AutoTokenizer, AutoModelForCausalLM
@@ -29,8 +35,9 @@ sys.stdout.reconfigure(encoding="utf-8")
 #                                 an empirically grounded cutoff, not a guess.
 #
 # Stage 2  ExchangeClassifier  — only runs if Stage 1 flags the prompt. Reuses
-#                                 the SAME loaded Falcon3-1B-Instruct model
-#                                 with a classification system prompt (adapted
+#                                 the SAME loaded model (selected dynamically
+#                                 via --model <key> from models.yml) with a
+#                                 classification system prompt (adapted
 #                                 from constitutional_classifier.py's
 #                                 JUDGE_SYSTEM) to render a BLOCK/PASS verdict
 #                                 via generation. Meta-refusal (model declines
@@ -88,7 +95,12 @@ class FastGate:
 
     def _capture(self, prompt):
         messages = [{"role": "user", "content": prompt}]
-        text = self.tokenizer.apply_chat_template(messages, tokenize=False, add_generation_prompt=True)
+        # enable_thinking=False keeps the prompt-side template identical to
+        # what collect_activations.py used when building the reference signature
+        # (harmless for models without a "thinking mode" template).
+        text = self.tokenizer.apply_chat_template(
+            messages, tokenize=False, add_generation_prompt=True, enable_thinking=False,
+        )
         inputs = self.tokenizer(text, return_tensors="pt").to(self.DEVICE)
         with torch.no_grad():
             out = self.model(**inputs, output_hidden_states=True)
@@ -125,7 +137,12 @@ class ExchangeClassifier:
             {"role": "system", "content": JUDGE_SYSTEM},
             {"role": "user", "content": f"Classify this message:\n\n{prompt}"},
         ]
-        text = self.tokenizer.apply_chat_template(messages, tokenize=False, add_generation_prompt=True)
+        # enable_thinking=False: without it, Qwen3 wraps its verdict in a
+        # <think>...</think> preamble that the VERDICT/REASON regexes below
+        # can't parse; harmless no-op for models without a "thinking mode".
+        text = self.tokenizer.apply_chat_template(
+            messages, tokenize=False, add_generation_prompt=True, enable_thinking=False,
+        )
         inputs = self.tokenizer(text, return_tensors="pt").to(self.DEVICE)
 
         with torch.no_grad():
@@ -157,7 +174,9 @@ class ExchangeClassifier:
         # against a generation-only baseline. Not used by Classifier.classify()
         # itself, which stays cheap (no generation) on the clear path.
         messages = [{"role": "user", "content": prompt}]
-        text = self.tokenizer.apply_chat_template(messages, tokenize=False, add_generation_prompt=True)
+        text = self.tokenizer.apply_chat_template(
+            messages, tokenize=False, add_generation_prompt=True, enable_thinking=False,
+        )
         inputs = self.tokenizer(text, return_tensors="pt").to(self.DEVICE)
 
         with torch.no_grad():
@@ -177,9 +196,12 @@ class Classifier:
     DEVICE = "cuda"
     PROMPT_COLUMN = "text"
 
-    def __init__(self, model_id="tiiuae/Falcon3-1B-Instruct", dataset_path="dataset/",
+    def __init__(self, model_id=None, dataset_path="dataset/",
                  signature_path="activations/signature.pt", top_n=3,
                  gate_threshold=None, max_new_tokens=80):
+
+        if model_id is None:
+            _, model_id = resolve_model()
 
         self.model_id = model_id
         self.signature_path = Path(signature_path)
@@ -257,10 +279,17 @@ class Classifier:
 
 
 if __name__ == "__main__":
+    parser = argparse.ArgumentParser()
+    parser.add_argument("--model", default=None, help="Model key from models.yml (default: first entry)")
+    args = parser.parse_args()
+
+    model_key, model_id = resolve_model(args.model)
+    print(f"Using model '{model_key}' -> {model_id}")
+
     classifier = Classifier(
-        model_id="tiiuae/Falcon3-1B-Instruct",
+        model_id=model_id,
         dataset_path="dataset/",
-        signature_path="activations/signature.pt",
+        signature_path=f"activations/{model_key}/signature.pt",
         top_n=10,
         gate_threshold=None,  # None -> use signature.pt's own empirically-computed gate_threshold
         max_new_tokens=80,
