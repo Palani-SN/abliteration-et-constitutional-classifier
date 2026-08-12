@@ -222,7 +222,10 @@ class DirectionComputer:
         )
         self._save_signature(sig_layers, sig_dims, sig_matrix, gate_threshold)
 
-        plot_activation_analysis(refuse_mean, accept_mean, raw_diff, norms)
+        plot_activation_analysis(
+            refuse_mean, accept_mean, raw_diff, norms,
+            out_path=self.activations_dir / "activation_analysis.html",
+        )
 
 
 if __name__ == "__main__":
