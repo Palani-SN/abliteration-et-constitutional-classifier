@@ -3,7 +3,8 @@ set -euo pipefail
 
 # =============================================================================
 # workflow.sh
-# Runs the full refusal-direction / abliteration pipeline end to end, in order:
+# Runs the full refusal-direction / abliteration pipeline end to end, in order
+# (all scripts below live under pipeline/, e.g. pipeline/collect_activations.py):
 #   1. collect_activations.py - collect per-layer last-token activations for the
 #                                harmfull/harmless train+test prompt sets (loaded
 #                                via load_datasets.PromptSets from dataset/*.xlsx,
@@ -11,14 +12,14 @@ set -euo pipefail
 #                                curated)
 #   2. compute_direction.py   - compute per-layer mean-difference directions and
 #                                save the single selected layer's direction to
-#                                activations/<model_key>/direction.pt, plus the
+#                                observations/<model_key>/direction.pt, plus the
 #                                Cohen's-d selected {layers}x{dims} signature
 #                                (+ empirically fit gate_threshold) to
-#                                activations/<model_key>/signature.pt
+#                                observations/<model_key>/signature.pt
 #   3. signature_report.py    - validate the signature (per-layer Cohen's d sweep,
 #                                train-vs-OOD classification coherence, and an
 #                                all-dims/all-layers baseline comparison), writing
-#                                activations/<model_key>/signature_report.html +
+#                                observations/<model_key>/signature_report.html +
 #                                signature_stats.json
 #   4. abliterate.py          - apply the direction as a runtime ablation hook (no
 #                                model is saved to disk) and print a quick
@@ -36,6 +37,10 @@ set -euo pipefail
 #                                latency (*_ts) across Original / Abliterated /
 #                                Constitutional Classifier++ to
 #                                results/<model_key>/<timestamp>/comparison_report.html
+#   8. hf_clear_cache.py      - deletes the entire local Hugging Face cache (all
+#                                downloaded model weights, not just this model's),
+#                                freeing disk space before the next model in a
+#                                batch run downloads its own weights
 #
 # Run setup_env.sh once before this script if the "eip" conda environment has
 # not been created yet.
@@ -43,8 +48,13 @@ set -euo pipefail
 # Usage: ./workflow.sh [model_key] [top_n]
 #   model_key - a key from models.yml (e.g. qwen_3_1p7b). Defaults to the
 #               first entry in models.yml when omitted. Every stage writes
-#               under activations/<model_key>/ and results/<model_key>/, so
-#               different models never share cached activations or results.
+#               under activations/<model_key>/, observations/<model_key>/, and
+#               results/<model_key>/, so different models never share cached
+#               activations, observation outputs, or results. observations/
+#               holds the small human-facing outputs (direction, signature,
+#               reports) separately from the much larger raw per-prompt
+#               activation cache under activations/ — copy just observations/
+#               off the GPU box when you don't need the raw activations too.
 #   top_n     - caps verify.py (Stage 6) to top_n harmful + top_n harmless
 #               OOD prompts, for a quick end-to-end smoke test. Defaults to
 #               the full 100+100 held-out set when omitted.
@@ -85,59 +95,68 @@ on_error() {
     echo
     echo "[ERROR] Pipeline stopped due to the error above."
     echo "  - time elapsed before failure: $(elapsed)"
+    echo "Clearing the Hugging Face cache before exiting ..."
+    python pipeline/hf_clear_cache.py || true
     exit "$ec"
 }
 trap on_error ERR
 
 echo "============================================================"
-echo "STAGE 1/7: Collecting activations"
+echo "STAGE 1/8: Collecting activations"
 echo "============================================================"
-python collect_activations.py $MODEL_ARG
+python pipeline/collect_activations.py $MODEL_ARG
 
 echo
 echo "============================================================"
-echo "STAGE 2/7: Computing the refusal direction and signature"
+echo "STAGE 2/8: Computing the refusal direction and signature"
 echo "============================================================"
-python compute_direction.py $MODEL_ARG
+python pipeline/compute_direction.py $MODEL_ARG
 
 echo
 echo "============================================================"
-echo "STAGE 3/7: Validating the signature (report + baseline comparison)"
+echo "STAGE 3/8: Validating the signature (report + baseline comparison)"
 echo "============================================================"
-python signature_report.py $MODEL_ARG
+python pipeline/signature_report.py $MODEL_ARG
 
 echo
 echo "============================================================"
-echo "STAGE 4/7: Abliterating the model (runtime ablation + quick judge check)"
+echo "STAGE 4/8: Abliterating the model (runtime ablation + quick judge check)"
 echo "============================================================"
-python abliterate.py $MODEL_ARG
+python pipeline/abliterate.py $MODEL_ARG
 
 echo
 echo "============================================================"
-echo "STAGE 5/7: Two-stage classifier sanity check (FastGate + ExchangeClassifier)"
+echo "STAGE 5/8: Two-stage classifier sanity check (FastGate + ExchangeClassifier)"
 echo "============================================================"
-python classify.py $MODEL_ARG
+python pipeline/classify.py $MODEL_ARG
 
 echo
 echo "============================================================"
-echo "STAGE 6/7: Verifying generalization on held-out OOD prompts"
+echo "STAGE 6/8: Verifying generalization on held-out OOD prompts"
 echo "============================================================"
-python verify.py $MODEL_ARG $TOPN_ARG
+python pipeline/verify.py $MODEL_ARG $TOPN_ARG
 
 echo
 echo "============================================================"
-echo "STAGE 7/7: Building the comparison report (latest results/ run)"
+echo "STAGE 7/8: Building the comparison report (latest results/ run)"
 echo "============================================================"
-python comparison_report.py $MODEL_ARG
+python pipeline/comparison_report.py $MODEL_ARG
+
+echo
+echo "============================================================"
+echo "STAGE 8/8: Clearing the Hugging Face cache"
+echo "============================================================"
+python pipeline/hf_clear_cache.py
 
 trap - ERR
 echo
 echo "============================================================"
 echo "PIPELINE COMPLETE"
-echo "  - refusal direction:    activations/<model_key>/direction.pt"
-echo "  - signature + gate:     activations/<model_key>/signature.pt"
-echo "  - signature report:     activations/<model_key>/signature_report.html"
+echo "  - refusal direction:    observations/<model_key>/direction.pt"
+echo "  - signature + gate:     observations/<model_key>/signature.pt"
+echo "  - signature report:     observations/<model_key>/signature_report.html"
 echo "  - verification reports: results/<model_key>/<timestamp>/{harmless,harmfull}.xlsx"
 echo "  - comparison report:    results/<model_key>/<timestamp>/comparison_report.html"
+echo "  - HF cache:             cleared"
 echo "  - total time taken:     $(elapsed)"
 echo "============================================================"

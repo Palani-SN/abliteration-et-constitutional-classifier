@@ -1,7 +1,7 @@
 
 import os
 
-from models import cli_model_arg, configure_hf_offline_mode, resolve_model
+from pipeline.models import cli_model_arg, configure_hf_offline_mode, resolve_model
 
 # Resolved here, before transformers/huggingface_hub is imported, since
 # HF_HUB_OFFLINE is read once at that import — see models.py.

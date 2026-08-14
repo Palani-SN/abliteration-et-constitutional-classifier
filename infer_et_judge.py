@@ -6,9 +6,9 @@ from pathlib import Path
 import pandas as pd
 
 from infer_model import Inference_Model
-from llm_judge import LLM_as_Judge
-from load_datasets import PromptSets
-from models import resolve_model
+from pipeline.llm_judge import LLM_as_Judge
+from pipeline.load_datasets import PromptSets
+from pipeline.models import resolve_model
 
 sys.stdout.reconfigure(encoding="utf-8")
 

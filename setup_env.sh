@@ -7,7 +7,7 @@ set -euo pipefail
 #   1. Miniforge, only if conda isn't already on PATH (never overrides an
 #      existing conda/miniforge install -- just activates on top of it)
 #   2. the "eip" conda environment (python 3.11.6)
-#   3. PyTorch (CUDA 12.4, matching the pin in reqs.txt), then the rest of
+#   3. PyTorch (CUDA 12.6, matching the pin in reqs.txt), then the rest of
 #      reqs.txt
 #   4. Ollama + gemma4:e4b (the LLM-as-Judge backend used throughout the
 #      pipeline)
@@ -105,11 +105,25 @@ for bin in python pip; do
     esac
 done
 
-echo "[4/6] Installing PyTorch (CUDA 12.4) ..."
-pip install torch --index-url https://download.pytorch.org/whl/cu124
+echo "[4/6] Installing PyTorch (CUDA 12.6) ..."
+# Upgrade pip first: an older pip bundled with a fresh conda env can fail to
+# recognize the manylinux/wheel tags on torch's nvidia-cudnn-cu12 (and other
+# nvidia-*) transitive dependencies, surfacing as a misleading "no matching
+# distributions available" ResolutionImpossible error even though a
+# compatible wheel exists. Pinning the torch version (matching reqs.txt)
+# also keeps pip from backtracking across several torch releases at once.
+#
+# cu126, not cu124: PyTorch has been phasing out CUDA 12.4 wheels (moving to
+# 12.6/13.0 as the supported tags), and cu124's torch builds pin an exact
+# nvidia-cudnn-cu12 patch version that has since been pulled from the index
+# entirely -- "No matching distribution found for nvidia-cudnn-cu12==9.1.0.70"
+# is that rotted pin, not a WSL/platform issue. cu126 is the current
+# older-driver-compatible tag with actively published wheels.
+python -m pip install --upgrade pip
+pip install torch==2.6.0+cu126 --index-url https://download.pytorch.org/whl/cu126
 
 echo "[5/6] Installing remaining dependencies from reqs.txt ..."
-pip install -r "$REQS_FILE" --extra-index-url https://download.pytorch.org/whl/cu124
+pip install -r "$REQS_FILE" --extra-index-url https://download.pytorch.org/whl/cu126
 
 echo "[6/6] Ensuring Ollama + gemma4:e4b are ready ..."
 if ! command -v ollama >/dev/null 2>&1; then
@@ -136,7 +150,7 @@ echo "Pre-downloading model weights (MODEL_KEY env var selects the models.yml"
 echo "entry; unset defaults to the first entry, falcon_3_1b) ..."
 TARGET_MODEL_ID="$(MODEL_KEY_ENV="${MODEL_KEY:-}" python -c "
 import os, sys
-sys.path.insert(0, '${SCRIPT_DIR}')
+sys.path.insert(0, '${SCRIPT_DIR}/pipeline')
 from models import resolve_model
 key = os.environ.get('MODEL_KEY_ENV') or None
 _, model_id = resolve_model(key)

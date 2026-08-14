@@ -168,7 +168,7 @@ setup_env.bat
 This creates and provisions a conda environment named **`eip`** (Python 3.11.6):
 
 1. Creates the `eip` environment if it doesn't already exist (skips otherwise).
-2. Installs **PyTorch 2.6.0 (CUDA 12.4)** explicitly, before anything else.
+2. Installs **PyTorch 2.6.0 (CUDA 12.6)** explicitly, before anything else.
 3. Installs the remaining pinned dependencies from [`reqs.txt`](reqs.txt) — `transformers`, `accelerate`, `bitsandbytes`, `plotly`, `pandas`/`openpyxl`/`fastparquet`, `openai` (used as the Ollama client), `scipy`, etc.
 4. Verifies the install by importing `torch`, `transformers`, `bitsandbytes`, `plotly`, `pandas`, `openai`, `scipy` and printing their versions plus `torch.cuda.is_available()`.
 
@@ -210,7 +210,7 @@ Not part of `workflow.bat` itself, but required before Stage 1 can run — see [
 ### Stage 1/7 — Collecting Activations
 
 ```
-python collect_activations.py --model falcon_3_1b
+python pipeline/collect_activations.py --model falcon_3_1b
 ```
 
 Loads the selected model (`--model <key>` from [`models.yml`](models.yml); defaults to `falcon_3_1b`) and, for every prompt in the curated harmless/harmful train and test sets, captures the **last prompt token's hidden state at every layer** (the position right before generation starts — where the model "decides" to refuse or comply). Each activation is cached to `activations/<model_key>/<category>_<split>/<sha256-of-prompt>.pt`, content-addressed so a changed prompt can never silently reuse a stale activation. Already-cached activations are skipped, and orphaned files for prompts no longer in the current set are pruned automatically:
@@ -226,7 +226,7 @@ Done.
 ### Stage 2/7 — Computing the Refusal Direction and Signature
 
 ```
-python compute_direction.py --model falcon_3_1b
+python pipeline/compute_direction.py --model falcon_3_1b
 ```
 
 Two related but distinct computations, both described in full in [Methodology Deep Dive](#methodology-deep-dive):
@@ -247,7 +247,7 @@ Saved activation analysis -> activations/falcon_3_1b/activation_analysis.html
 ### Stage 3/7 — Validating the Signature
 
 ```
-python signature_report.py --model falcon_3_1b
+python pipeline/signature_report.py --model falcon_3_1b
 ```
 
 Statistically validates the signature selected in Stage 2 *before* trusting it as a classifier: a per-layer Cohen's d / Mann-Whitney U sweep across every layer (not just the selected band), a combined score-averaging analysis over the signature's layer band, an OOD (held-out test set) classification pass with a train-fit threshold, and a comparison against an all-19-layer/all-2048-dim baseline with no dimensionality reduction. Writes `activations/<model_key>/signature_stats.json` and `activations/<model_key>/signature_report.html`.
@@ -271,7 +271,7 @@ Baseline — ALL 19 layers x ALL 2048 dims (no reduction) ...
 ### Stage 4/7 — Abliterating the Model
 
 ```
-python abliterate.py --model falcon_3_1b
+python pipeline/abliterate.py --model falcon_3_1b
 ```
 
 Loads the model, registers a forward hook on the embedding layer and every transformer layer that projects `direction.pt`'s vector out of that layer's output (`hidden = hidden − (hidden · direction) × direction`), then runs a quick eyeball check: generation on `top_n` harmful and `top_n` harmless OOD prompts with ablation active, each judged by the local LLM-as-Judge. No weights are modified and no model is saved — the hook can be toggled on/off on the same loaded model instance, which is exactly what `verify.py` relies on in Stage 6.
@@ -287,7 +287,7 @@ response : 1. **Research the Target Network**: Gather information about the corp
 ### Stage 5/7 — Two-Stage Classifier Sanity Check
 
 ```
-python classify.py --model falcon_3_1b
+python pipeline/classify.py --model falcon_3_1b
 ```
 
 Runs the Constitutional Classifiers++ gate (FastGate → ExchangeClassifier, detailed in [Methodology Deep Dive](#methodology-deep-dive)) standalone over `top_n` harmful/harmless OOD prompts, printing the gate score, whether it escalated, and the final verdict for each:
@@ -305,7 +305,7 @@ HARMLESS — 10 OOD prompts ...
 ### Stage 6/7 — Verifying Generalization on Held-Out OOD Prompts
 
 ```
-python verify.py --mode batch --model falcon_3_1b
+python pipeline/verify.py --mode batch --model falcon_3_1b
 ```
 
 The core evaluation stage, run over the **full** held-out test sets (100 harmful + 100 harmless OOD prompts, not just `top_n`). Two sequential phases per category:
@@ -320,7 +320,7 @@ Every row (prompt, both generations, both judgements, gate score, classifier ver
 ### Stage 7/7 — Building the Comparison Report
 
 ```
-python comparison_report.py --model falcon_3_1b
+python pipeline/comparison_report.py --model falcon_3_1b
 ```
 
 Reads the **latest** `results/<model_key>/<timestamp>/*.xlsx` written by Stage 6 and renders a single self-contained HTML report (Bootstrap via CDN) comparing judgement pass rate and latency across Original / Abliterated / Constitutional Classifier++, with every prompt and response available in a click-to-expand modal. Output: `results/<model_key>/<timestamp>/comparison_report.html` — see [Results & Visualizations](#results--visualizations) for the latest run's figures and a live link.
