@@ -1,0 +1,58 @@
+============================================================
+STAGE 1/8: Collecting activations
+============================================================
+Using model 'recurrentgemma_9b' -> google/recurrentgemma-9b-it
+Loading google/recurrentgemma-9b-it in bfloat16 ...
+Fetching 4 files:   0%|          | 0/4 [00:00<?, ?it/s]Fetching 4 files:  25%|██▌       | 1/4 [00:36<01:49, 36.51s/it]Fetching 4 files:  50%|█████     | 2/4 [00:38<00:32, 16.19s/it]Fetching 4 files: 100%|██████████| 4/4 [00:38<00:00,  9.62s/it]
+Loading weights:   0%|          | 0/705 [00:00<?, ?it/s]Loading weights:   0%|          | 1/705 [00:00<01:52,  6.24it/s]Loading weights:  13%|█▎        | 92/705 [00:00<00:01, 430.83it/s]Loading weights:  26%|██▌       | 183/705 [00:00<00:00, 622.47it/s]Loading weights:  39%|███▊      | 273/705 [00:00<00:00, 723.17it/s]Loading weights:  52%|█████▏    | 367/705 [00:00<00:00, 792.43it/s]Loading weights:  65%|██████▍   | 458/705 [00:00<00:00, 827.11it/s]Loading weights:  78%|███████▊  | 551/705 [00:00<00:00, 857.74it/s]Loading weights:  91%|█████████ | 640/705 [00:00<00:00, 858.02it/s]Loading weights:  96%|█████████▌| 675/705 [00:00<00:00, 740.24it/s]
+Traceback (most recent call last):
+  File "/root/workspace/abliteration-et-constitutional-classifier/pipeline/collect_activations.py", line 138, in <module>
+    collector = ActivationCollector(
+                ^^^^^^^^^^^^^^^^^^^^
+  File "/root/workspace/abliteration-et-constitutional-classifier/pipeline/collect_activations.py", line 48, in __init__
+    self.tokenizer, self.model = self._load_model(model_id)
+                                 ^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/root/workspace/abliteration-et-constitutional-classifier/pipeline/collect_activations.py", line 52, in _load_model
+    model = AutoModelForCausalLM.from_pretrained(
+            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/root/miniconda3/envs/eip/lib/python3.11/site-packages/transformers/models/auto/auto_factory.py", line 406, in from_pretrained
+    return model_class.from_pretrained(
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/root/miniconda3/envs/eip/lib/python3.11/site-packages/transformers/modeling_utils.py", line 4327, in from_pretrained
+    loading_info, disk_offload_index = cls._load_pretrained_model(model, state_dict, checkpoint_files, load_config)
+                                       ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/root/miniconda3/envs/eip/lib/python3.11/site-packages/transformers/modeling_utils.py", line 4457, in _load_pretrained_model
+    loading_info, disk_offload_index = convert_and_load_state_dict_in_model(
+                                       ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/root/miniconda3/envs/eip/lib/python3.11/site-packages/transformers/core_model_loading.py", line 1466, in convert_and_load_state_dict_in_model
+    realized_value = mapping.convert(
+                     ^^^^^^^^^^^^^^^^
+  File "/root/miniconda3/envs/eip/lib/python3.11/site-packages/transformers/core_model_loading.py", line 830, in convert
+    collected_tensors = self.materialize_tensors()
+                        ^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/root/miniconda3/envs/eip/lib/python3.11/site-packages/transformers/core_model_loading.py", line 794, in materialize_tensors
+    tensors = [future.result() for future in tensors if future.result() is not None]
+              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/root/miniconda3/envs/eip/lib/python3.11/site-packages/transformers/core_model_loading.py", line 794, in <listcomp>
+    tensors = [future.result() for future in tensors if future.result() is not None]
+                                                        ^^^^^^^^^^^^^^^
+  File "/root/miniconda3/envs/eip/lib/python3.11/concurrent/futures/_base.py", line 456, in result
+    return self.__get_result()
+           ^^^^^^^^^^^^^^^^^^^
+  File "/root/miniconda3/envs/eip/lib/python3.11/concurrent/futures/_base.py", line 401, in __get_result
+    raise self._exception
+  File "/root/miniconda3/envs/eip/lib/python3.11/concurrent/futures/thread.py", line 58, in run
+    result = self.fn(*self.args, **self.kwargs)
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/root/miniconda3/envs/eip/lib/python3.11/site-packages/transformers/core_model_loading.py", line 1005, in _job
+    return _materialize_copy(tensor, device, dtype)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/root/miniconda3/envs/eip/lib/python3.11/site-packages/transformers/core_model_loading.py", line 991, in _materialize_copy
+    tensor = tensor.to(device=device, dtype=dtype)
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+torch.OutOfMemoryError: CUDA out of memory. Tried to allocate 32.00 MiB. GPU 0 has a total capacity of 22.04 GiB of which 20.00 MiB is free. Process 1525 has 4.31 GiB memory in use. Including non-PyTorch memory, this process has 17.69 GiB memory in use. Of the allocated memory 17.49 GiB is allocated by PyTorch, and 19.19 MiB is reserved by PyTorch but unallocated. If reserved but unallocated memory is large try setting PYTORCH_CUDA_ALLOC_CONF=expandable_segments:True to avoid fragmentation.  See documentation for Memory Management  (https://pytorch.org/docs/stable/notes/cuda.html#environment-variables)
+
+[ERROR] Pipeline stopped due to the error above.
+  - time elapsed before failure: 00:00:52
+Clearing the Hugging Face cache before exiting ...
+All local Hugging Face models removed.

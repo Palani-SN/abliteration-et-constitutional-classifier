@@ -1,0 +1,33 @@
+============================================================
+STAGE 1/8: Collecting activations
+============================================================
+Using model 'gemma_3_12b' -> google/gemma-3-12b-it
+Loading google/gemma-3-12b-it in bfloat16 ...
+Fetching 5 files:   0%|          | 0/5 [00:00<?, ?it/s]Fetching 5 files:  20%|██        | 1/5 [00:46<03:06, 46.62s/it]Fetching 5 files:  60%|██████    | 3/5 [00:48<00:25, 12.78s/it]Fetching 5 files: 100%|██████████| 5/5 [00:48<00:00,  9.70s/it]
+Traceback (most recent call last):
+  File "/root/workspace/abliteration-et-constitutional-classifier/pipeline/collect_activations.py", line 138, in <module>
+    collector = ActivationCollector(
+                ^^^^^^^^^^^^^^^^^^^^
+  File "/root/workspace/abliteration-et-constitutional-classifier/pipeline/collect_activations.py", line 48, in __init__
+    self.tokenizer, self.model = self._load_model(model_id)
+                                 ^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/root/workspace/abliteration-et-constitutional-classifier/pipeline/collect_activations.py", line 52, in _load_model
+    model = AutoModelForCausalLM.from_pretrained(
+            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/root/miniconda3/envs/eip/lib/python3.11/site-packages/transformers/models/auto/auto_factory.py", line 406, in from_pretrained
+    return model_class.from_pretrained(
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/root/miniconda3/envs/eip/lib/python3.11/site-packages/transformers/modeling_utils.py", line 4327, in from_pretrained
+    loading_info, disk_offload_index = cls._load_pretrained_model(model, state_dict, checkpoint_files, load_config)
+                                       ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/root/miniconda3/envs/eip/lib/python3.11/site-packages/transformers/modeling_utils.py", line 4408, in _load_pretrained_model
+    caching_allocator_warmup(model, expanded_device_map, load_config.hf_quantizer)
+  File "/root/miniconda3/envs/eip/lib/python3.11/site-packages/transformers/modeling_utils.py", line 5095, in caching_allocator_warmup
+    _ = torch.empty(int(byte_count // 2), dtype=torch.float16, device=device, requires_grad=False)
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+torch.OutOfMemoryError: CUDA out of memory. Tried to allocate 19.36 GiB. GPU 0 has a total capacity of 22.04 GiB of which 17.53 GiB is free. Process 1525 has 4.31 GiB memory in use. Including non-PyTorch memory, this process has 186.00 MiB memory in use. Of the allocated memory 0 bytes is allocated by PyTorch, and 0 bytes is reserved by PyTorch but unallocated. If reserved but unallocated memory is large try setting PYTORCH_CUDA_ALLOC_CONF=expandable_segments:True to avoid fragmentation.  See documentation for Memory Management  (https://pytorch.org/docs/stable/notes/cuda.html#environment-variables)
+
+[ERROR] Pipeline stopped due to the error above.
+  - time elapsed before failure: 00:01:01
+Clearing the Hugging Face cache before exiting ...
+All local Hugging Face models removed.

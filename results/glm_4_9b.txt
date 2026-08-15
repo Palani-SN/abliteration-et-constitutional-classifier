@@ -1,0 +1,68 @@
+============================================================
+STAGE 1/8: Collecting activations
+============================================================
+Using model 'glm_4_9b' -> zai-org/glm-4-9b-chat-hf
+Loading zai-org/glm-4-9b-chat-hf in bfloat16 ...
+Fetching 4 files:   0%|          | 0/4 [00:00<?, ?it/s]Fetching 4 files:  25%|██▌       | 1/4 [00:35<01:45, 35.27s/it]Fetching 4 files:  50%|█████     | 2/4 [00:36<00:30, 15.17s/it]Fetching 4 files: 100%|██████████| 4/4 [00:36<00:00,  9.09s/it]
+Loading weights:   0%|          | 0/443 [00:00<?, ?it/s]Loading weights:   0%|          | 1/443 [00:00<00:44,  9.97it/s]Loading weights:  12%|█▏        | 55/443 [00:00<00:01, 318.59it/s]Loading weights:  26%|██▌       | 114/443 [00:00<00:00, 433.32it/s]Loading weights:  38%|███▊      | 168/443 [00:00<00:00, 457.50it/s]Loading weights:  51%|█████     | 225/443 [00:00<00:00, 487.18it/s]Loading weights:  64%|██████▍   | 284/443 [00:00<00:00, 515.27it/s]Loading weights:  78%|███████▊  | 345/443 [00:00<00:00, 536.66it/s]Loading weights:  91%|█████████ | 401/443 [00:00<00:00, 529.19it/s]Loading weights: 100%|██████████| 443/443 [00:00<00:00, 491.67it/s]
+Collecting activations for 'harmless_train' ...
+Traceback (most recent call last):
+  File "/root/workspace/abliteration-et-constitutional-classifier/pipeline/collect_activations.py", line 144, in <module>
+    collector.run()
+  File "/root/workspace/abliteration-et-constitutional-classifier/pipeline/collect_activations.py", line 65, in run
+    self._collect_set(category, split)
+  File "/root/workspace/abliteration-et-constitutional-classifier/pipeline/collect_activations.py", line 115, in _collect_set
+    acts = self._last_token_hidden_states(prompt)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/root/workspace/abliteration-et-constitutional-classifier/pipeline/collect_activations.py", line 93, in _last_token_hidden_states
+    out = self.model(**inputs, output_hidden_states=True)
+          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/root/miniconda3/envs/eip/lib/python3.11/site-packages/torch/nn/modules/module.py", line 1739, in _wrapped_call_impl
+    return self._call_impl(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/root/miniconda3/envs/eip/lib/python3.11/site-packages/torch/nn/modules/module.py", line 1750, in _call_impl
+    return forward_call(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/root/miniconda3/envs/eip/lib/python3.11/site-packages/transformers/utils/generic.py", line 907, in wrapper
+    output = func(self, *args, **kwargs)
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/root/miniconda3/envs/eip/lib/python3.11/site-packages/transformers/models/glm/modeling_glm.py", line 484, in forward
+    outputs: BaseModelOutputWithPast = self.model(
+                                       ^^^^^^^^^^^
+  File "/root/miniconda3/envs/eip/lib/python3.11/site-packages/torch/nn/modules/module.py", line 1739, in _wrapped_call_impl
+    return self._call_impl(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/root/miniconda3/envs/eip/lib/python3.11/site-packages/torch/nn/modules/module.py", line 1750, in _call_impl
+    return forward_call(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/root/miniconda3/envs/eip/lib/python3.11/site-packages/transformers/utils/generic.py", line 1036, in wrapper
+    output = func(self, *args, **kwargs)
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/root/miniconda3/envs/eip/lib/python3.11/site-packages/transformers/utils/output_capturing.py", line 252, in wrapper
+    outputs = func(self, *args, **kwargs)
+              ^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/root/miniconda3/envs/eip/lib/python3.11/site-packages/transformers/models/glm/modeling_glm.py", line 399, in forward
+    inputs_embeds: torch.Tensor = self.embed_tokens(input_ids)
+                                  ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/root/miniconda3/envs/eip/lib/python3.11/site-packages/torch/nn/modules/module.py", line 1739, in _wrapped_call_impl
+    return self._call_impl(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/root/miniconda3/envs/eip/lib/python3.11/site-packages/torch/nn/modules/module.py", line 1750, in _call_impl
+    return forward_call(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/root/miniconda3/envs/eip/lib/python3.11/site-packages/torch/nn/modules/sparse.py", line 190, in forward
+    return F.embedding(
+           ^^^^^^^^^^^^
+  File "/root/miniconda3/envs/eip/lib/python3.11/site-packages/torch/nn/functional.py", line 2551, in embedding
+    return torch.embedding(weight, input, padding_idx, scale_grad_by_freq, sparse)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+RuntimeError: CUDA error: out of memory
+CUDA kernel errors might be asynchronously reported at some other API call, so the stacktrace below might be incorrect.
+For debugging consider passing CUDA_LAUNCH_BLOCKING=1
+Compile with `TORCH_USE_CUDA_DSA` to enable device-side assertions.
+
+
+[ERROR] Pipeline stopped due to the error above.
+  - time elapsed before failure: 00:00:50
+Clearing the Hugging Face cache before exiting ...
+All local Hugging Face models removed.
