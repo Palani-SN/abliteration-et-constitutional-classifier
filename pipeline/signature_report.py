@@ -251,6 +251,31 @@ def classify_ood(refuse_train_acts, accept_train_acts, refuse_ood_acts, accept_o
 
 # ── Plotting ──────────────────────────────────────────────────────────────────
 
+def _binned_bar(data, nbinsx, name, color, opacity=0.65, visible=True, showlegend=True,
+                 extra_label=None):
+    """A go.Bar trace pre-binned server-side with numpy, visually identical to
+    a go.Histogram(x=data, nbinsx=nbinsx, ...) trace but without shipping every
+    raw data point to the browser. A plain Histogram trace embeds the full
+    array in the HTML for Plotly.js to bin client-side; for the pairwise
+    cosine-similarity arrays this report plots (tens of thousands of points
+    per layer, repeated across every layer in Figure 3's dropdown), that's
+    what balloons signature_report.html to 50-90MB per model. np.histogram
+    reproduces exactly what Histogram would have computed anyway, so this
+    cuts each trace down to nbinsx numbers with no change in what's shown.
+    """
+    data = np.asarray(data)
+    counts, edges = np.histogram(data, bins=nbinsx)
+    centers = (edges[:-1] + edges[1:]) / 2
+    width = edges[1] - edges[0]
+    label = extra_label if extra_label is not None else name
+    return go.Bar(
+        x=centers, y=counts, width=width, name=name,
+        marker=dict(color=color), opacity=opacity,
+        visible=visible, showlegend=showlegend,
+        hovertemplate=f"{label}: %{{x:.3f}}<br>count=%{{y}}<extra></extra>",
+    )
+
+
 def build_html(results, combined, ood, sig_dims, sig_layers, baseline_combined=None, baseline_ood=None):
     layers = [r["layer"] for r in results]
     best   = max(results, key=lambda r: r["cohens_d"])
@@ -308,10 +333,9 @@ def build_html(results, combined, ood, sig_dims, sig_layers, baseline_combined=N
             (r["rr_sims"], "refuse-refuse", "royalblue"),
             (r["ra_sims"], "refuse-accept", "tomato"),
         ]:
-            fig3.add_trace(go.Histogram(
-                x=sims, name=label, marker_color=color, opacity=0.65,
-                nbinsx=40, visible=visible, showlegend=(i == 0),
-                hovertemplate=f"{label}: %{{x:.3f}}<extra></extra>",
+            fig3.add_trace(_binned_bar(
+                sims, nbinsx=40, name=label, color=color,
+                visible=visible, showlegend=(i == 0),
             ))
 
     buttons = []
@@ -354,11 +378,7 @@ def build_html(results, combined, ood, sig_dims, sig_layers, baseline_combined=N
         (combined["rr_sims"], f"refuse-refuse (score avg layers {min(sig_layers)}-{max(sig_layers)})", "royalblue", "solid"),
         (combined["ra_sims"], f"refuse-accept (score avg layers {min(sig_layers)}-{max(sig_layers)})", "tomato",    "solid"),
     ]:
-        fig4.add_trace(go.Histogram(
-            x=sims, name=label, opacity=0.55, nbinsx=40,
-            marker=dict(color=color),
-            hovertemplate=f"{label}: %{{x:.3f}}<extra></extra>",
-        ))
+        fig4.add_trace(_binned_bar(sims, nbinsx=40, name=label, color=color, opacity=0.55))
     fig4.update_layout(
         title_text=(
             f"Score-avg combined vs best single layer ({best['layer']})  |  "
@@ -376,15 +396,11 @@ def build_html(results, combined, ood, sig_dims, sig_layers, baseline_combined=N
     # since ref_means come from this same data) fit, for comparison against OOD.
     train = ood["train"]
     fig5 = go.Figure()
-    fig5.add_trace(go.Histogram(
-        x=train["refuse_scores"], name="refuse_train (should be HIGH)",
-        marker_color="tomato", opacity=0.65, nbinsx=30,
-        hovertemplate="score=%{x:.3f}<extra>refuse_train</extra>",
+    fig5.add_trace(_binned_bar(
+        train["refuse_scores"], nbinsx=30, name="refuse_train (should be HIGH)", color="tomato",
     ))
-    fig5.add_trace(go.Histogram(
-        x=train["accept_scores"], name="accept_train (should be LOW)",
-        marker_color="royalblue", opacity=0.65, nbinsx=30,
-        hovertemplate="score=%{x:.3f}<extra>accept_train</extra>",
+    fig5.add_trace(_binned_bar(
+        train["accept_scores"], nbinsx=30, name="accept_train (should be LOW)", color="royalblue",
     ))
     fig5.add_vline(
         x=ood["threshold"], line_dash="dash", line_color="black",
@@ -409,15 +425,11 @@ def build_html(results, combined, ood, sig_dims, sig_layers, baseline_combined=N
     # whether the signature generalises, and whether it looks coherent with Fig 5.
     ood_split = ood["ood"]
     fig6 = go.Figure()
-    fig6.add_trace(go.Histogram(
-        x=ood_split["refuse_scores"], name="refuse_ood (should be HIGH)",
-        marker_color="tomato", opacity=0.65, nbinsx=30,
-        hovertemplate="score=%{x:.3f}<extra>refuse_ood</extra>",
+    fig6.add_trace(_binned_bar(
+        ood_split["refuse_scores"], nbinsx=30, name="refuse_ood (should be HIGH)", color="tomato",
     ))
-    fig6.add_trace(go.Histogram(
-        x=ood_split["accept_scores"], name="accept_ood (should be LOW)",
-        marker_color="royalblue", opacity=0.65, nbinsx=30,
-        hovertemplate="score=%{x:.3f}<extra>accept_ood</extra>",
+    fig6.add_trace(_binned_bar(
+        ood_split["accept_scores"], nbinsx=30, name="accept_ood (should be LOW)", color="royalblue",
     ))
     fig6.add_vline(
         x=ood["threshold"], line_dash="dash", line_color="black",
@@ -449,25 +461,17 @@ def build_html(results, combined, ood, sig_dims, sig_layers, baseline_combined=N
     if baseline_combined is not None and baseline_ood is not None:
         b_ood = baseline_ood["ood"]
         fig7 = go.Figure()
-        fig7.add_trace(go.Histogram(
-            x=ood_split["refuse_scores"], name="refuse_ood (signature)",
-            marker_color="tomato", opacity=0.55, nbinsx=30,
-            hovertemplate="score=%{x:.3f}<extra>refuse_ood (signature)</extra>",
+        fig7.add_trace(_binned_bar(
+            ood_split["refuse_scores"], nbinsx=30, name="refuse_ood (signature)", color="tomato", opacity=0.55,
         ))
-        fig7.add_trace(go.Histogram(
-            x=ood_split["accept_scores"], name="accept_ood (signature)",
-            marker_color="royalblue", opacity=0.55, nbinsx=30,
-            hovertemplate="score=%{x:.3f}<extra>accept_ood (signature)</extra>",
+        fig7.add_trace(_binned_bar(
+            ood_split["accept_scores"], nbinsx=30, name="accept_ood (signature)", color="royalblue", opacity=0.55,
         ))
-        fig7.add_trace(go.Histogram(
-            x=b_ood["refuse_scores"], name="refuse_ood (all-dims baseline)",
-            marker_color="darkred", opacity=0.55, nbinsx=30,
-            hovertemplate="score=%{x:.3f}<extra>refuse_ood (baseline)</extra>",
+        fig7.add_trace(_binned_bar(
+            b_ood["refuse_scores"], nbinsx=30, name="refuse_ood (all-dims baseline)", color="darkred", opacity=0.55,
         ))
-        fig7.add_trace(go.Histogram(
-            x=b_ood["accept_scores"], name="accept_ood (all-dims baseline)",
-            marker_color="darkslateblue", opacity=0.55, nbinsx=30,
-            hovertemplate="score=%{x:.3f}<extra>accept_ood (baseline)</extra>",
+        fig7.add_trace(_binned_bar(
+            b_ood["accept_scores"], nbinsx=30, name="accept_ood (all-dims baseline)", color="darkslateblue", opacity=0.55,
         ))
         fig7.add_vline(
             x=ood["threshold"], line_dash="dash", line_color="black",
