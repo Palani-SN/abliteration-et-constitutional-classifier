@@ -6,8 +6,9 @@ from pathlib import Path
 import pandas as pd
 
 from infer_model import Inference_Model
-from llm_judge import LLM_as_Judge
-from load_datasets import PromptSets
+from pipeline.llm_judge import LLM_as_Judge
+from pipeline.load_datasets import PromptSets
+from pipeline.models import resolve_model
 
 sys.stdout.reconfigure(encoding="utf-8")
 
@@ -17,7 +18,10 @@ class InferAndJudge:
     PROMPT_COLUMN = "text"
 
     def __init__(self, dataset_path="dataset/", split="test", top_n=5, results_dir="results/",
-                 model_id="tiiuae/Falcon3-1B-Instruct", judge_model="gemma4:e4b"):
+                 model_id=None, judge_model="gemma4:e4b"):
+
+        if model_id is None:
+            _, model_id = resolve_model()
 
         self.split = split
         self.top_n = top_n
@@ -71,14 +75,22 @@ class InferAndJudge:
 
 
 if __name__ == '__main__':
+    import argparse
+
+    parser = argparse.ArgumentParser()
+    parser.add_argument("--model", default=None, help="Model key from models.yml (default: first entry)")
+    args = parser.parse_args()
+
+    model_key, model_id = resolve_model(args.model)
+    print(f"Using model '{model_key}' -> {model_id}")
 
     print("start")
     runner = InferAndJudge(
         dataset_path="dataset/",
         split="test",
         top_n=3,
-        results_dir="results/",
-        model_id="tiiuae/Falcon3-1B-Instruct",
+        results_dir=f"results/{model_key}",
+        model_id=model_id,
         judge_model="gemma4:e4b",
     )
     runner.run()

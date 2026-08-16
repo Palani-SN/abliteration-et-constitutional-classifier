@@ -1,0 +1,21 @@
+qwen_3_0p6b: "Qwen/Qwen3-0.6B" # ungated, Apache-2.0
+falcon_3_1b: "tiiuae/Falcon3-1B-Instruct" # ungated, TII Falcon-LLM License 2.0
+gemma_3_1b: "google/gemma-3-1b-it" # GATED — accept Google's Gemma license on the model page
+llama_3p2_1b: "meta-llama/Llama-3.2-1B-Instruct" # GATED — accept Meta's Llama license on the model page
+stablelm_2_1p6b: "stabilityai/stablelm-2-zephyr-1_6b" # ungated on HF, but StabilityAI Non-Commercial Research license
+qwen_3_1p7b: "Qwen/Qwen3-1.7B" # ungated, Apache-2.0
+qwen_1p5_1p8b: "Qwen/Qwen1.5-1.8B-Chat" # ungated, Tongyi Qianwen Research license
+llama_3p2_3b: "meta-llama/Llama-3.2-3B-Instruct" # GATED — accept Meta's Llama license on the model page
+phi_3p5_mini: "microsoft/Phi-3.5-mini-instruct" # ungated, MIT
+qwen_3_4b: "Qwen/Qwen3-4B" # ungated, Apache-2.0
+gemma_3_4b: "google/gemma-3-4b-it" # GATED — accept Google's Gemma license on the model page
+mistral_7b: "mistralai/Mistral-7B-Instruct-v0.3" # ungated, Apache-2.0
+olmo_2_7b: "allenai/OLMo-2-1124-7B-Instruct" # ungated, Apache-2.0
+llama_3_8b: "meta-llama/Meta-Llama-3-8B-Instruct" # GATED — accept Meta's Llama license on the model page
+llama_3p1_8b: "meta-llama/Llama-3.1-8B-Instruct" # GATED — accept Meta's Llama license on the model page
+qwen_3_8b: "Qwen/Qwen3-8B" # ungated, Apache-2.0
+granite_3p3_8b: "ibm-granite/granite-3.3-8b-instruct" # ungated, Apache-2.0
+recurrentgemma_9b: "google/recurrentgemma-9b-it" # GATED — accept Google's Gemma license; Griffin architecture (recurrent + local attention), not a standard transformer
+yi_1p5_9b: "01-ai/Yi-1.5-9B-Chat" # ungated, Apache-2.0
+glm_4_9b: "zai-org/glm-4-9b-chat-hf" # ungated on HF, custom glm-4 license
+gemma_3_12b: "google/gemma-3-12b-it" # GATED — accept Google's Gemma license; exceeds 24GB VRAM in bf16, auto-offloads overflow layers to CPU RAM via device_map="auto"
