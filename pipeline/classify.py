@@ -31,9 +31,16 @@ sys.stdout.reconfigure(encoding="utf-8")
 #                                 similarity against the flattened refuse_mean
 #                                 signature saved by compute_direction.py.
 #                                 gate_threshold defaults to signature.pt's own
-#                                 "gate_threshold" (the midpoint between mean
-#                                 refuse/accept train scores computed there) —
-#                                 an empirically grounded cutoff, not a guess.
+#                                 "gate_threshold" — the accuracy-maximizing
+#                                 cut point found by exact search over the
+#                                 train score distribution in
+#                                 compute_direction._best_threshold (NOT the
+#                                 midpoint of the two groups' mean scores,
+#                                 which sits inside accept's long upper tail).
+#
+# Both stages run on the ORIGINAL, un-ablated model: nothing here loads
+# direction.pt or registers an ablation hook. The classifier is an external
+# guard scoring the prompt, not a probe attached to an abliterated model.
 #
 # Stage 2  ExchangeClassifier  — only runs if Stage 1 flags the prompt. Reuses
 #                                 the SAME loaded model (selected dynamically

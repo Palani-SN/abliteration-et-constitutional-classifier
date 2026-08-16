@@ -197,7 +197,7 @@ class DirectionComputer:
             "matrix":         matrix,          # [len(layers), len(dims)] block from refuse_mean
             "top_n":          self.sig_top_n,
             "bottom_n":       self.sig_bottom_n,
-            "gate_threshold": gate_threshold,  # midpoint of refuse/accept train flatten-cosine scores
+            "gate_threshold": gate_threshold,  # accuracy-maximizing cut point over the train flatten-cosine scores (_best_threshold)
         }, self.sig_path)
         print(f"\nSaved -> {self.sig_path}")
         print(f"  signature: {tuple(matrix.shape)}  (layers={layers}, dims={dims}, gate_threshold={gate_threshold:.4f})")

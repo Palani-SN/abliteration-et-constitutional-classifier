@@ -37,7 +37,7 @@ from models import resolve_model
 #
 # Outputs:
 #   observations/<model_key>/signature_stats.json    per-layer + combined + OOD statistics
-#   observations/<model_key>/signature_report.html   five-panel interactive report
+#   observations/<model_key>/signature_report.html   seven-panel interactive report
 # =============================================================================
 
 ACTIVATIONS_DIR = "activations"    # rebound in __main__ to activations/<model_key>

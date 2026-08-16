@@ -30,11 +30,15 @@ sys.stdout.reconfigure(encoding="utf-8")
 #                  1. Generation  — for top_n OOD prompts, generate+judge under
 #                     both conditions (Abliterator's model).
 #                  2. Unmount Abliterator's model, then load a fresh
-#                     classify.Classifier (must run on the ORIGINAL model —
-#                     see constitutional_classifier.py's note — which is moot
-#                     here since Abliterator's copy is already gone) and
-#                     classify the SAME prompts (Fast Gate + Exchange
-#                     Classifier).
+#                     classify.Classifier and classify the SAME prompts
+#                     (FastGate + ExchangeClassifier). The classifier runs on
+#                     the ORIGINAL, un-ablated model by construction:
+#                     classify.py never loads direction.pt and never registers
+#                     an ablation hook, and Abliterator's hooked copy is gone
+#                     by this point anyway. That is the intended threat model —
+#                     the classifier is an external guard on a clean model
+#                     instance, scoring the prompt rather than the ablated
+#                     model's output.
 #                Both phases' records are merged per prompt and written to
 #                results/<timestamp>/{harmless,harmfull}.xlsx.
 #   Prompt mode: interactive REPL — for each typed prompt, show both the

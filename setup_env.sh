@@ -147,7 +147,7 @@ if [ -n "${HF_TOKEN:-}" ]; then
 fi
 
 echo "Pre-downloading model weights (MODEL_KEY env var selects the models.yml"
-echo "entry; unset defaults to the first entry, falcon_3_1b) ..."
+echo "entry; unset defaults to the first entry in that file) ..."
 TARGET_MODEL_ID="$(MODEL_KEY_ENV="${MODEL_KEY:-}" python -c "
 import os, sys
 sys.path.insert(0, '${SCRIPT_DIR}/pipeline')
@@ -177,10 +177,11 @@ print(f'openpyxl {openpyxl.__version__}')
 
 echo
 echo "Environment \"$ENV_NAME\" is ready."
-echo "NOTE: gemma_1p1_2b, gemma_1p1_7b, and llama_3_8b in models.yml are gated on"
-echo "      Hugging Face. Export HF_TOKEN before running this script to log in"
-echo "      automatically, or run 'hf auth login' manually, after accepting each"
-echo "      model's license on its Hugging Face page."
+echo "NOTE: the gemma_3_*, recurrentgemma_9b, llama_3_8b, llama_3p1_8b and"
+echo "      llama_3p2_* entries in models.yml are gated on Hugging Face. Export"
+echo "      HF_TOKEN before running this script to log in automatically, or run"
+echo "      'hf auth login' manually, after accepting each model's license on"
+echo "      its Hugging Face page."
 echo "NOTE: The judge requires Ollama + gemma4:e4b, already pulled above. If"
 echo "      \"ollama serve\" isn't running in a future shell, start it with:"
 echo "        ollama serve"
